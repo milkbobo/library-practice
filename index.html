@@ -1,0 +1,22 @@
+
+<a href="/add">增加</a>
+<table border="1">
+  <tr>
+    <th>ID</th>
+    <th>拥有人</th>
+    <th>书名</th>
+    <td>操作</td>
+  </tr>
+
+
+{{range .}}
+ <tr>
+    <td>{{.Uid}}</td>
+    <td>{{.Username}}</td>
+    <td>{{.Bname}}</td>
+    <td> <a href="/edit?id={{.Uid}}">修改</a>  <a href="/del?id={{.Uid}}">删除</a></td>
+  </tr>
+{{end}}
+
+ 
+</table>

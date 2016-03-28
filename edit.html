@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>修改图书</title>
+</head>
+<body>
+	<form action="/edit" method="post">
+
+	
+		<input type="hidden" name="id" value="{{.Uid}}">
+		<div>用户名字: <input type="text" name="username" value="{{.Username}}"></div>
+		<div>图书名字: <input type="text" name="bname" value="{{.Bname}}"></div>
+		<button type="submit" value="提交">提交</button>
+
+	
+	</form>
+</body>
+</html>
