@@ -122,7 +122,7 @@ func del(w http.ResponseWriter, r *http.Request){
 
 	if len(r.Form["id"]) > 0 {
 
-	    //删除数据
+	   
     stmt, err := ddb.Prepare("delete from book where Uid=?")
     checkErr(err)
 
