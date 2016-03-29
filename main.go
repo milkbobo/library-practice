@@ -15,6 +15,8 @@ func main() {
 	http.HandleFunc("/add", add)
 	http.HandleFunc("/del", del)
 	http.HandleFunc("/edit", edit)
+	http.HandleFunc("/login", login)
+	http.HandleFunc("/out", out)
 	err := http.ListenAndServe(":9090", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -64,8 +66,25 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("%v\n", v)
 
+	IsLogin := false
+
+	c1, err := r.Cookie("username")
+
+	fmt.Println("c1", c1)
+
+	if c1 != nil {
+		IsLogin = true
+	}
+
 	t, _ := template.ParseFiles("index.html")
-	err = t.Execute(w, v)
+	err = t.Execute(w, struct {
+		List    []dd
+		IsLogin bool
+	}{
+		v,
+		IsLogin,
+	})
+
 	if err != nil {
 
 		fmt.Println(err.Error())
@@ -196,6 +215,54 @@ func edit(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+}
+
+func login(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fmt.Println("method:", r.Method)
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.html")
+		t.Execute(w, nil)
+	} else {
+		username := r.Form.Get("username")
+		password := r.Form.Get("password")
+
+		if username != "admin" {
+			fmt.Fprint(w, "账号或密码错误")
+			return
+		}
+
+		if password != "admin" {
+			fmt.Fprint(w, "账号或密码错误")
+			return
+		}
+
+		c := &http.Cookie{
+			Name:  "username",
+			Value: "milkbobo",
+			Path:  "/",
+			// Domain: "localhost",
+			MaxAge: 120,
+		}
+		http.SetCookie(w, c)
+
+		http.Redirect(w, r, "/", 302)
+		return
+	}
+}
+
+func out(w http.ResponseWriter, r *http.Request) {
+	c := &http.Cookie{
+		Name:  "username",
+		Value: "",
+		Path:  "/",
+		// Domain: "localhost",
+		MaxAge: -1,
+	}
+	http.SetCookie(w, c)
+
+	http.Redirect(w, r, "/", 302)
+	return
 }
 
 func checkErr(err error) {
