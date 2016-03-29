@@ -2,13 +2,20 @@ package main
 
 import (
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	// "strings"
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	"./api"
 )
+
+type dd struct {
+	Uid      int
+	Username string
+	Bname    string
+}
 
 func main() {
 	http.HandleFunc("/", get)
@@ -24,26 +31,14 @@ func main() {
 
 }
 
-func db() *sql.DB {
-	dbs, err := sql.Open("mysql", "root:milkbobo@/library?charset=utf8")
-	checkErr(err)
-	return dbs
-}
-
 func get(w http.ResponseWriter, r *http.Request) {
 
-	ddb := db()
+	ddb := api.Db()
 
 	defer ddb.Close()
 
 	rows, err := ddb.Query("SELECT * FROM book")
-	checkErr(err)
-
-	type dd struct {
-		Uid      int
-		Username string
-		Bname    string
-	}
+	api.CheckErr(err)
 
 	v := []dd{}
 
@@ -52,7 +47,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		var username string
 		var bname string
 		err = rows.Scan(&uid, &username, &bname)
-		checkErr(err)
+		api.CheckErr(err)
 		fmt.Println(uid)
 		fmt.Println(username)
 		fmt.Println(bname)
@@ -104,18 +99,18 @@ func add(w http.ResponseWriter, r *http.Request) {
 		bname := r.Form.Get("bname")
 		fmt.Println(username, bname)
 
-		ddb := db()
+		ddb := api.Db()
 
 		defer ddb.Close()
 
 		stmt, err := ddb.Prepare("INSERT book SET Username=?,Bname=?")
-		checkErr(err)
+		api.CheckErr(err)
 
 		res, err := stmt.Exec(username, bname)
-		checkErr(err)
+		api.CheckErr(err)
 
 		id, err := res.LastInsertId()
-		checkErr(err)
+		api.CheckErr(err)
 
 		fmt.Println(id)
 
@@ -127,86 +122,112 @@ func add(w http.ResponseWriter, r *http.Request) {
 }
 
 func del(w http.ResponseWriter, r *http.Request) {
-	ddb := db()
-
+	ddb := api.Db()
 	defer ddb.Close()
 
-	r.ParseForm()
+	id := api.CheckId(w, r)
 
-	if len(r.Form["id"]) > 0 {
-
-		stmt, err := ddb.Prepare("delete from book where Uid=?")
-		checkErr(err)
-
-		res, err := stmt.Exec(r.Form["id"][0])
-		checkErr(err)
-
-		_, err = res.RowsAffected()
-		checkErr(err)
-
-		http.Redirect(w, r, "/", 302)
-
+	if id == 0 {
+		return
 	}
+
+	stmt, err := ddb.Prepare("delete from book where Uid=?")
+	api.CheckErr(err)
+
+	res, err := stmt.Exec(id)
+	api.CheckErr(err)
+
+	_, err = res.RowsAffected()
+	api.CheckErr(err)
+
+	http.Redirect(w, r, "/", 302)
+
 }
 
 func edit(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
 
-	ddb := db()
+	idd := template.HTMLEscapeString(r.Form.Get("id"))
+	// username := template.HTMLEscapeString(r.Form.Get("username"))
+	bname := template.HTMLEscapeString(r.Form.Get("bname"))
+	fmt.Printf("the.idd->[%v]\n", idd)
+	fmt.Printf("the.bname->[%v]\n", bname)
+
+	c1 := api.CheckLogin(w, r)
+
+	ddb := api.Db()
 
 	defer ddb.Close()
 
 	r.ParseForm()
 	fmt.Println("method:", r.Method) //获取请求的方法
 
+	if len(r.Form["id"]) <= 0 {
+		fmt.Fprint(w, "请输入id参数")
+		return
+	}
+
+	id := r.Form["id"][0]
+
+	ids, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Fprint(w, "输入id参数错误，请返回重试！")
+		return
+	}
+
+	fmt.Println("ids", ids)
+
+	rows, err := ddb.Query("SELECT * FROM book where Uid=?", ids)
+	api.CheckErr(err)
+
+	defer rows.Close()
+
+	v := []dd{}
+
+	err = rows.Err()
+	api.CheckErr(err)
+
+	for rows.Next() {
+		var uid int
+		var username string
+		var bname string
+		err = rows.Scan(&uid, &username, &bname)
+		api.CheckErr(err)
+		fmt.Println(uid)
+		fmt.Println(username)
+		fmt.Println(bname)
+
+		v = append(v, dd{
+			Uid:      uid,
+			Username: username,
+			Bname:    bname,
+		})
+	}
+
+	if len(v) == 0 {
+		fmt.Fprint(w, "非法操作，请返回重试")
+		return
+	}
+
+	fmt.Printf("%v\n", v)
+
 	if r.Method == "GET" {
 
-		rows, err := ddb.Query("SELECT * FROM book where Uid=" + r.Form["id"][0])
-		checkErr(err)
-
-		type dd struct {
-			Uid      int
-			Username string
-			Bname    string
-		}
-
-		v := dd{}
-
-		for rows.Next() {
-			var uid int
-			var username string
-			var bname string
-			err = rows.Scan(&uid, &username, &bname)
-			checkErr(err)
-			fmt.Println(uid)
-			fmt.Println(username)
-			fmt.Println(bname)
-
-			v = dd{
-				Uid:      uid,
-				Username: username,
-				Bname:    bname,
-			}
-		}
-
-		fmt.Printf("%v\n", v)
-
 		t, _ := template.ParseFiles("edit.html")
-		err = t.Execute(w, v)
-		checkErr(err)
+		err = t.Execute(w, v[0])
+		api.CheckErr(err)
 	} else {
-		id := r.Form.Get("id")
-		username := r.Form.Get("username")
-		bname := r.Form.Get("bname")
-		fmt.Println(id, username, bname)
+
+		fmt.Println("输入进来的", id, bname)
 
 		stmt, err := ddb.Prepare("update book set Username=?,Bname=? where uid=?")
-		checkErr(err)
+		api.CheckErr(err)
 
-		res, err := stmt.Exec(username, bname, id)
-		checkErr(err)
+		res, err := stmt.Exec(c1.Value, bname, idd)
+		api.CheckErr(err)
 
 		_, err = res.RowsAffected()
-		checkErr(err)
+		api.CheckErr(err)
 
 		fmt.Println(id)
 
@@ -239,7 +260,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		c := &http.Cookie{
 			Name:  "username",
-			Value: "milkbobo",
+			Value: "admin",
 			Path:  "/",
 			// Domain: "localhost",
 			MaxAge: 120,
@@ -263,6 +284,91 @@ func out(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/", 302)
 	return
+}
+
+func checkLogin(w http.ResponseWriter, r *http.Request) *http.Cookie {
+
+	c1, err := r.Cookie("username")
+
+	if err != nil {
+		http.Redirect(w, r, "/login", 302)
+		return nil
+	}
+	return c1
+
+}
+
+func checkId(w http.ResponseWriter, r *http.Request) int {
+	ddb := api.Db()
+
+	defer ddb.Close()
+
+	r.ParseForm()
+	fmt.Println("method:", r.Method) //获取请求的方法
+
+	if len(r.Form["id"]) <= 0 {
+		fmt.Fprint(w, "请输入id参数")
+		return 0
+	}
+
+	id := r.Form["id"][0]
+
+	ids, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Fprint(w, "输入id参数错误，请返回重试！")
+		return 0
+	}
+
+	fmt.Println("ids", ids)
+
+	rows, err := ddb.Query("SELECT * FROM book where Uid=?", ids)
+	api.CheckErr(err)
+
+	defer rows.Close()
+
+	v := []dd{}
+
+	err = rows.Err()
+	api.CheckErr(err)
+
+	for rows.Next() {
+		var uid int
+		var username string
+		var bname string
+		err = rows.Scan(&uid, &username, &bname)
+		api.CheckErr(err)
+		fmt.Println(uid)
+		fmt.Println(username)
+		fmt.Println(bname)
+
+		v = append(v, dd{
+			Uid:      uid,
+			Username: username,
+			Bname:    bname,
+		})
+	}
+
+	if len(v) == 0 {
+		fmt.Fprint(w, "非法操作，请返回重试")
+		return 0
+	}
+
+	fmt.Printf("%v\n", v)
+	c1 := api.CheckLogin(w, r)
+
+	fmt.Printf("test,%#v\n", c1)
+
+	if c1 == nil {
+		return 0
+	}
+
+	if c1.Value != v[0].Username {
+		fmt.Fprint(w, "你不是该拥有者，不能删除或修改")
+		return 0
+	}
+
+	return ids
+
 }
 
 func checkErr(err error) {
