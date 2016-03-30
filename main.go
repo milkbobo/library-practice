@@ -14,8 +14,8 @@ import (
 
 func main() {
 	http.HandleFunc("/", HttpWrapHandler(get))
+	http.HandleFunc("/add", HttpWrapHandler(add))
 	/*
-		http.HandleFunc("/add", add)
 		http.HandleFunc("/del", del)
 		http.HandleFunc("/edit", edit)
 		http.HandleFunc("/login", login)
@@ -35,14 +35,22 @@ func HttpWrapHandler(inHandler HttpErrorHandler) HttpHandler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := inHandler(w, r)
 		if err != nil {
-			fmt.Fprint(w, "<div style=\"color:red\">")
-			fmt.Fprint(w, err.Error())
-			fmt.Fprint(w, "</div>")
+			if err == api.NoLoginError {
+				http.Redirect(w, r, "/login", 302)
+			} else {
+				fmt.Fprint(w, "<div style=\"color:red\">")
+				fmt.Fprint(w, err.Error())
+				fmt.Fprint(w, "</div>")
+			}
 		}
 	}
 }
 
 func get(w http.ResponseWriter, r *http.Request) error {
+	err := api.CheckLogin(r)
+	if err != nil {
+		return err
+	}
 
 	v, err := api.Get("SELECT * FROM book")
 	if err != nil {
@@ -67,6 +75,44 @@ func get(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Write(buffer.Bytes())
+	return nil
+}
+
+func add(w http.ResponseWriter, r *http.Request) error {
+	err := api.CheckLogin(r)
+	if err != nil {
+		return err
+	}
+
+	if r.Method == "GET" {
+		t, err := template.ParseFiles("add.html")
+		if err != nil {
+			return err
+		}
+
+		buffer := bytes.NewBuffer(nil)
+		err = t.Execute(w, nil)
+		if err != nil {
+			return err
+		}
+		w.Write(buffer.Bytes())
+	} else {
+		data, err := api.CheckInput(r, map[string]string{
+			"username": "string",
+			"bname":    "string",
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = api.Add(
+			"INSERT book SET Username=?,Bname=?",
+			data["username"].(string),
+			data["bname"].(string),
+		)
+
+		http.Redirect(w, r, "/", 302)
+	}
 	return nil
 }
 

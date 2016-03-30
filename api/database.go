@@ -13,7 +13,7 @@ type Book struct {
 }
 
 func Db() (*sql.DB, error) {
-	return sql.Open("mysql", "root:123@/library?charset=utf8")
+	return sql.Open("mysql", "root:1@/library?charset=utf8")
 }
 
 /*
@@ -68,26 +68,35 @@ func Get(query string, args ...interface{}) ([]Book, error) {
 	return v, nil
 }
 
-/*
-func Add(query string, args ...interface{}) int64 {
+func Add(query string, args ...interface{}) (int64, error) {
 
-	ddb := Db()
+	ddb, err := Db()
+	if err != nil {
+		return 0, err
+	}
 
 	defer ddb.Close()
 
 	stmt, err := ddb.Prepare(query)
-	CheckErr(err)
+	if err != nil {
+		return 0, err
+	}
 
 	res, err := stmt.Exec(args...)
-	CheckErr(err)
+	if err != nil {
+		return 0, err
+	}
 
 	id, err := res.LastInsertId()
-	CheckErr(err)
+	if err != nil {
+		return 0, err
+	}
 
-	return id
+	return id, nil
 
 }
 
+/*
 func Edit(query string, args ...interface{}) {
 
 	ddb := Db()
