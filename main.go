@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
@@ -11,19 +12,15 @@ import (
 	"./api"
 )
 
-type dd struct {
-	Uid      int
-	Username string
-	Bname    string
-}
-
 func main() {
-	http.HandleFunc("/", get)
-	http.HandleFunc("/add", add)
-	http.HandleFunc("/del", del)
-	http.HandleFunc("/edit", edit)
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/out", out)
+	http.HandleFunc("/", HttpWrapHandler(get))
+	/*
+		http.HandleFunc("/add", add)
+		http.HandleFunc("/del", del)
+		http.HandleFunc("/edit", edit)
+		http.HandleFunc("/login", login)
+		http.HandleFunc("/out", out)
+	*/
 	err := http.ListenAndServe(":9090", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -31,37 +28,49 @@ func main() {
 
 }
 
-func get(w http.ResponseWriter, r *http.Request) {
+type HttpErrorHandler func(w http.ResponseWriter, r *http.Request) error
+type HttpHandler func(w http.ResponseWriter, r *http.Request)
 
-	v := api.Get("SELECT * FROM book")
+func HttpWrapHandler(inHandler HttpErrorHandler) HttpHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := inHandler(w, r)
+		if err != nil {
+			fmt.Fprint(w, "<div style=\"color:red\">")
+			fmt.Fprint(w, err.Error())
+			fmt.Fprint(w, "</div>")
+		}
+	}
+}
 
-	fmt.Printf("%v\n", v)
+func get(w http.ResponseWriter, r *http.Request) error {
 
-	IsLogin := false
-
-	c1, err := r.Cookie("username")
-
-	fmt.Println("c1", c1)
-
-	if c1 != nil {
-		IsLogin = true
+	v, err := api.Get("SELECT * FROM book")
+	if err != nil {
+		return err
 	}
 
-	t, _ := template.ParseFiles("index.html")
-	err = t.Execute(w, struct {
+	t, err := template.ParseFiles("index.html")
+	if err != nil {
+		return err
+	}
+
+	buffer := bytes.NewBuffer(nil)
+	err = t.Execute(buffer, struct {
 		List    []api.Book
 		IsLogin bool
 	}{
 		v,
-		IsLogin,
+		true,
 	})
-
 	if err != nil {
-
-		fmt.Println(err.Error())
+		return err
 	}
 
+	w.Write(buffer.Bytes())
+	return nil
 }
+
+/*
 
 func add(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -188,3 +197,4 @@ func out(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 	return
 }
+*/

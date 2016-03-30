@@ -2,7 +2,7 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -12,12 +12,11 @@ type Book struct {
 	Bname    string
 }
 
-func Db() *sql.DB {
-	dbs, err := sql.Open("mysql", "root:milkbobo@/library?charset=utf8")
-	CheckErr(err)
-	return dbs
+func Db() (*sql.DB, error) {
+	return sql.Open("mysql", "root:123@/library?charset=utf8")
 }
 
+/*
 func Del(id int) {
 	ddb := Db()
 	defer ddb.Close()
@@ -32,29 +31,32 @@ func Del(id int) {
 	CheckErr(err)
 
 }
+*/
 
-func Get(query string, args ...interface{}) []Book {
+func Get(query string, args ...interface{}) ([]Book, error) {
 
-	ddb := Db()
+	ddb, err := Db()
+	if err != nil {
+		return nil, err
+	}
 
 	defer ddb.Close()
 
 	rows, err := ddb.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
-	CheckErr(err)
 	v := []Book{}
-
 	for rows.Next() {
 		var uid int
 		var username string
 		var bname string
 		err = rows.Scan(&uid, &username, &bname)
-		CheckErr(err)
-
-		fmt.Println(uid)
-		fmt.Println(username)
-		fmt.Println(bname)
+		if err != nil {
+			return nil, err
+		}
 
 		v = append(v, Book{
 			Uid:      uid,
@@ -63,9 +65,10 @@ func Get(query string, args ...interface{}) []Book {
 		})
 	}
 
-	return v
+	return v, nil
 }
 
+/*
 func Add(query string, args ...interface{}) int64 {
 
 	ddb := Db()
@@ -99,3 +102,4 @@ func Edit(query string, args ...interface{}) {
 	_, err = res.RowsAffected()
 	CheckErr(err)
 }
+*/
