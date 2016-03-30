@@ -10,21 +10,20 @@ import (
 
 var NoLoginError = errors.New("账号未登录")
 
-func CheckLogin(r *http.Request) error {
+func CheckLogin(r *http.Request) {
 	c1, err := r.Cookie("username")
 	if err != nil || c1.Value != "admin" {
-		return NoLoginError
+		panic(NoLoginError)
 	}
-	return nil
 }
 
-func CheckInput(r *http.Request, inputFilter map[string]string) (map[string]interface{}, error) {
+func CheckInput(r *http.Request, inputFilter map[string]string) map[string]interface{} {
 	r.ParseForm()
 	result := map[string]interface{}{}
 	for key, format := range inputFilter {
 		singleData := r.Form.Get(key)
 		if singleData == "" {
-			return nil, errors.New("缺少参数" + key)
+			panic(errors.New("缺少参数" + key))
 		}
 		var singleResult interface{}
 		if format == "string" {
@@ -33,26 +32,26 @@ func CheckInput(r *http.Request, inputFilter map[string]string) (map[string]inte
 			var err error
 			singleResult, err = strconv.Atoi(singleData)
 			if err != nil {
-				return nil, errors.New(key + "参数不是合法的整数:[" + singleData + "]")
+				panic(errors.New(key + "参数不是合法的整数:[" + singleData + "]"))
 			}
 		} else {
-			return nil, errors.New("不合法的format" + format)
+			panic(errors.New("不合法的format" + format))
 		}
 		result[key] = singleResult
 	}
-	return result, nil
+	return result
 }
 
-func TemplateOutput(filename string, data interface{}) ([]byte, error) {
+func TemplateOutput(filename string, data interface{}) []byte {
 	buffer := bytes.NewBuffer(nil)
 	t, err := template.ParseFiles(filename)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	err = t.Execute(buffer, data)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return buffer.Bytes(), nil
+	return buffer.Bytes()
 }

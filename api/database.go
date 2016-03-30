@@ -12,42 +12,22 @@ type Book struct {
 	Bname    string
 }
 
-func Db() (*sql.DB, error) {
-	return sql.Open("mysql", "root:1@/library?charset=utf8")
+func Db() *sql.DB {
+	db, err := sql.Open("mysql", "root:1@/library?charset=utf8")
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
-func Del(id int) error {
-	ddb, err := Db()
-	if err != nil {
-		return err
-	}
-	defer ddb.Close()
+func Get(query string, args ...interface{}) []Book {
 
-	stmt, err := ddb.Prepare("delete from book where Uid=?")
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(id)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Get(query string, args ...interface{}) ([]Book, error) {
-
-	ddb, err := Db()
-	if err != nil {
-		return nil, err
-	}
-
+	ddb := Db()
 	defer ddb.Close()
 
 	rows, err := ddb.Query(query, args...)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	defer rows.Close()
 
@@ -58,7 +38,7 @@ func Get(query string, args ...interface{}) ([]Book, error) {
 		var bname string
 		err = rows.Scan(&uid, &username, &bname)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 
 		v = append(v, Book{
@@ -68,54 +48,65 @@ func Get(query string, args ...interface{}) ([]Book, error) {
 		})
 	}
 
-	return v, nil
+	return v
 }
 
-func Add(query string, args ...interface{}) (int64, error) {
+func Del(id int) {
+	ddb := Db()
 
-	ddb, err := Db()
+	defer ddb.Close()
+
+	stmt, err := ddb.Prepare("delete from book where Uid=?")
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func Add(query string, args ...interface{}) int64 {
+
+	ddb := Db()
 
 	defer ddb.Close()
 
 	stmt, err := ddb.Prepare(query)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
 
 	res, err := stmt.Exec(args...)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
 
-	return id, nil
+	return id
 
 }
 
-func Edit(query string, args ...interface{}) error {
+func Edit(query string, args ...interface{}) {
 
-	ddb, err := Db()
-	if err != nil {
-		return err
-	}
+	ddb := Db()
+
 	defer ddb.Close()
 
 	stmt, err := ddb.Prepare(query)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	_, err = stmt.Exec(args...)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	return nil
 }
