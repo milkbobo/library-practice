@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"errors"
+	"html/template"
 	"net/http"
 	"strconv"
 )
@@ -41,66 +43,16 @@ func CheckInput(r *http.Request, inputFilter map[string]string) (map[string]inte
 	return result, nil
 }
 
-/*
-type dd struct {
-	Uid      int
-	Username string
-	Bname    string
-}
-
-func CheckId(w http.ResponseWriter, r *http.Request) int {
-	ddb := Db()
-
-	defer ddb.Close()
-
-	r.ParseForm()
-	fmt.Println("method:", r.Method) //获取请求的方法
-
-	if len(r.Form["id"]) <= 0 {
-		fmt.Fprint(w, "请输入id参数")
-		return 0
-	}
-
-	id := r.Form["id"][0]
-
-	ids, err := strconv.Atoi(id)
+func TemplateOutput(filename string, data interface{}) ([]byte, error) {
+	buffer := bytes.NewBuffer(nil)
+	t, err := template.ParseFiles(filename)
 	if err != nil {
-		fmt.Fprint(w, "输入id参数错误，请返回重试！")
-		return 0
+		return nil, err
 	}
 
-	fmt.Println("ids", ids)
-
-	v := Get("SELECT * FROM book where Uid=?", ids)
-
-	if len(v) == 0 {
-		fmt.Fprint(w, "非法操作，请返回重试")
-		return 0
-	}
-
-	fmt.Printf("%v\n", v)
-
-	c1 := CheckLogin(w, r)
-
-	fmt.Printf("test,%#v\n", c1)
-
-	if c1 == nil {
-		return 0
-	}
-
-	if c1.Value != v[0].Username {
-		fmt.Fprint(w, "你不是该拥有者，不能删除或修改")
-		return 0
-	}
-
-	return ids
-
-}
-
-func CheckErr(err error) {
+	err = t.Execute(buffer, data)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	return buffer.Bytes(), nil
 }
-
-*/

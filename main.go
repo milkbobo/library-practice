@@ -1,26 +1,23 @@
 package main
 
 import (
-	"bytes"
+	"./api"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"html/template"
 	"log"
 	"net/http"
-	// "strconv"
-	// "strings"
-	"./api"
 )
 
 func main() {
 	http.HandleFunc("/", HttpWrapHandler(get))
 	http.HandleFunc("/add", HttpWrapHandler(add))
-	/*
-		http.HandleFunc("/del", del)
-		http.HandleFunc("/edit", edit)
-		http.HandleFunc("/login", login)
-		http.HandleFunc("/out", out)
-	*/
+	http.HandleFunc("/del", HttpWrapHandler(del))
+	http.HandleFunc("/edit", HttpWrapHandler(edit))
+
+	http.HandleFunc("/login", HttpWrapHandler(login))
+	http.HandleFunc("/out", HttpWrapHandler(out))
+
 	err := http.ListenAndServe(":9090", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -57,13 +54,7 @@ func get(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	t, err := template.ParseFiles("index.html")
-	if err != nil {
-		return err
-	}
-
-	buffer := bytes.NewBuffer(nil)
-	err = t.Execute(buffer, struct {
+	result, err := api.TemplateOutput("index.html", struct {
 		List    []api.Book
 		IsLogin bool
 	}{
@@ -74,7 +65,7 @@ func get(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.Write(buffer.Bytes())
+	w.Write(result)
 	return nil
 }
 
@@ -85,17 +76,12 @@ func add(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if r.Method == "GET" {
-		t, err := template.ParseFiles("add.html")
+		result, err := api.TemplateOutput("add.html", nil)
 		if err != nil {
 			return err
 		}
 
-		buffer := bytes.NewBuffer(nil)
-		err = t.Execute(w, nil)
-		if err != nil {
-			return err
-		}
-		w.Write(buffer.Bytes())
+		w.Write(result)
 	} else {
 		data, err := api.CheckInput(r, map[string]string{
 			"username": "string",
@@ -116,131 +102,133 @@ func add(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-/*
-
-func add(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	fmt.Println("method:", r.Method)
-	if r.Method == "GET" {
-		t, _ := template.ParseFiles("add.html")
-		t.Execute(w, nil)
-	} else {
-
-		username := template.HTMLEscapeString(r.Form.Get("username"))
-		bname := template.HTMLEscapeString(r.Form.Get("bname"))
-		fmt.Println(username, bname)
-
-		id := api.Add("INSERT book SET Username=?,Bname=?", username, bname)
-
-		fmt.Println(id)
-
-		http.Redirect(w, r, "/", 302)
-		return
-
+func del(w http.ResponseWriter, r *http.Request) error {
+	err := api.CheckLogin(r)
+	if err != nil {
+		return err
 	}
 
-}
-
-func del(w http.ResponseWriter, r *http.Request) {
-
-	id := api.CheckId(w, r)
-
-	if id == 0 {
-		return
+	data, err := api.CheckInput(r, map[string]string{
+		"id": "int",
+	})
+	if err != nil {
+		return err
 	}
 
-	api.Del(id)
+	v, err := api.Get("SELECT * FROM book where Uid=?", data["id"].(int))
+	if err != nil {
+		return err
+	}
+	if len(v) == 0 {
+		return errors.New("不存在该数据")
+	}
+
+	err = api.Del(data["id"].(int))
+	if err != nil {
+		return err
+	}
 
 	http.Redirect(w, r, "/", 302)
-	return
-
+	return nil
 }
 
-func edit(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	idd := template.HTMLEscapeString(r.Form.Get("id"))
-	// username := template.HTMLEscapeString(r.Form.Get("username"))
-	bname := template.HTMLEscapeString(r.Form.Get("bname"))
-	fmt.Printf("the.idd->[%v]\n", idd)
-	fmt.Printf("the.bname->[%v]\n", bname)
-
-	c1 := api.CheckLogin(w, r)
-
-	ids := api.CheckId(w, r)
-
-	// rows, err := ddb.Query("SELECT * FROM book where Uid=?", ids)
-
-	v := api.Get("SELECT * FROM book where Uid=?", ids)
-
-	if len(v) == 0 {
-		fmt.Fprint(w, "非法操作，请返回重试")
-		return
+func edit(w http.ResponseWriter, r *http.Request) error {
+	err := api.CheckLogin(r)
+	if err != nil {
+		return err
 	}
 
-	fmt.Printf("%v\n", v)
-
 	if r.Method == "GET" {
-
-		t, _ := template.ParseFiles("edit.html")
-		err := t.Execute(w, v[0])
-		api.CheckErr(err)
-	} else {
-
-		api.Edit("update book set Username=?,Bname=? where uid=?", c1.Value, bname, idd)
-
-		http.Redirect(w, r, "/", 302)
-		return
-
-	}
-
-}
-
-func login(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	fmt.Println("method:", r.Method)
-	if r.Method == "GET" {
-		t, _ := template.ParseFiles("login.html")
-		t.Execute(w, nil)
-	} else {
-		username := r.Form.Get("username")
-		password := r.Form.Get("password")
-
-		if username != "admin" {
-			fmt.Fprint(w, "账号或密码错误")
-			return
+		data, err := api.CheckInput(r, map[string]string{
+			"id": "int",
+		})
+		if err != nil {
+			return err
 		}
 
-		if password != "admin" {
-			fmt.Fprint(w, "账号或密码错误")
-			return
+		v, err := api.Get("SELECT * FROM book where Uid=?", data["id"].(int))
+		if err != nil {
+			return err
+		}
+		if len(v) == 0 {
+			return errors.New("不存在该数据")
+		}
+
+		result, err := api.TemplateOutput("edit.html", v[0])
+		if err != nil {
+			return err
+		}
+
+		w.Write(result)
+	} else {
+		data, err := api.CheckInput(r, map[string]string{
+			"id":    "int",
+			"bname": "string",
+		})
+		if err != nil {
+			return err
+		}
+
+		err = api.Edit(
+			"update book set Bname=? where uid=?",
+			data["bname"].(string),
+			data["id"].(int),
+		)
+		if err != nil {
+			return err
+		}
+		http.Redirect(w, r, "/", 302)
+	}
+	return nil
+
+}
+
+func login(w http.ResponseWriter, r *http.Request) error {
+
+	if r.Method == "GET" {
+		result, err := api.TemplateOutput("login.html", nil)
+		if err != nil {
+			return err
+		}
+
+		w.Write(result)
+	} else {
+		data, err := api.CheckInput(r, map[string]string{
+			"username": "string",
+			"password": "string",
+		})
+		if err != nil {
+			return err
+		}
+
+		if data["username"] != "admin" {
+			return errors.New("账号错误")
+		}
+		if data["password"] != "admin" {
+			return errors.New("密码错误")
 		}
 
 		c := &http.Cookie{
-			Name:  "username",
-			Value: "admin",
-			Path:  "/",
-			// Domain: "localhost",
+			Name:   "username",
+			Value:  "admin",
+			Path:   "/",
 			MaxAge: 120,
 		}
 		http.SetCookie(w, c)
-
 		http.Redirect(w, r, "/", 302)
-		return
 	}
+	return nil
 }
 
-func out(w http.ResponseWriter, r *http.Request) {
+func out(w http.ResponseWriter, r *http.Request) error {
 	c := &http.Cookie{
-		Name:  "username",
-		Value: "",
-		Path:  "/",
-		// Domain: "localhost",
+		Name:   "username",
+		Value:  "",
+		Path:   "/",
 		MaxAge: -1,
 	}
 	http.SetCookie(w, c)
 
 	http.Redirect(w, r, "/", 302)
-	return
+	return nil
 }
-*/

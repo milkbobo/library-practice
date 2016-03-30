@@ -16,22 +16,25 @@ func Db() (*sql.DB, error) {
 	return sql.Open("mysql", "root:1@/library?charset=utf8")
 }
 
-/*
-func Del(id int) {
-	ddb := Db()
+func Del(id int) error {
+	ddb, err := Db()
+	if err != nil {
+		return err
+	}
 	defer ddb.Close()
 
 	stmt, err := ddb.Prepare("delete from book where Uid=?")
-	CheckErr(err)
+	if err != nil {
+		return err
+	}
 
-	res, err := stmt.Exec(id)
-	CheckErr(err)
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return err
+	}
 
-	_, err = res.RowsAffected()
-	CheckErr(err)
-
+	return nil
 }
-*/
 
 func Get(query string, args ...interface{}) ([]Book, error) {
 
@@ -96,19 +99,23 @@ func Add(query string, args ...interface{}) (int64, error) {
 
 }
 
-/*
-func Edit(query string, args ...interface{}) {
+func Edit(query string, args ...interface{}) error {
 
-	ddb := Db()
+	ddb, err := Db()
+	if err != nil {
+		return err
+	}
 	defer ddb.Close()
 
 	stmt, err := ddb.Prepare(query)
-	CheckErr(err)
+	if err != nil {
+		return err
+	}
 
-	res, err := stmt.Exec(args...)
-	CheckErr(err)
+	_, err = stmt.Exec(args...)
+	if err != nil {
+		return err
+	}
 
-	_, err = res.RowsAffected()
-	CheckErr(err)
+	return nil
 }
-*/
