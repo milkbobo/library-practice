@@ -2,13 +2,13 @@ package main
 
 import (
 	"./api"
-	"crypto/rand"
+	// "crypto/rand"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 
-	"encoding/hex"
+	// "encoding/hex"
 	"net/http"
 	// "strconv"
 )
@@ -170,39 +170,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 			panic(errors.New("密码错误"))
 		}
 
-		k := make([]byte, 16)
-		if _, err := rand.Read(k); err != nil {
-			panic(err)
-		}
+		s := api.SessionStore{}
 
-		theRandValue := hex.EncodeToString(k)
-
-		_ = api.Add(
-			"INSERT session SET token=?,value=?",
-			theRandValue,
-			data["username"],
-		)
-
-		c := &http.Cookie{
-			Name:   "token",
-			Value:  theRandValue,
-			Path:   "/",
-			MaxAge: 120,
-		}
-		http.SetCookie(w, c)
+		s.SessionSet(w, r, "admin")
 		http.Redirect(w, r, "/", 302)
 	}
 
 }
 
 func out(w http.ResponseWriter, r *http.Request) {
-	c := &http.Cookie{
-		Name:   "token",
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
-	}
-	http.SetCookie(w, c)
+
+	s := api.SessionStore{}
+	s.SessionDestroy(w, r)
 
 	http.Redirect(w, r, "/", 302)
 

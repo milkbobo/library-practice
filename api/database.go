@@ -12,11 +12,6 @@ type Book struct {
 	Bname    string
 }
 
-type Session struct {
-	token string
-	value string
-}
-
 func Db() *sql.DB {
 	db, err := sql.Open("mysql", "root:1@/library?charset=utf8")
 	if err != nil {
@@ -50,35 +45,6 @@ func Get(query string, args ...interface{}) []Book {
 			Uid:      uid,
 			Username: username,
 			Bname:    bname,
-		})
-	}
-
-	return v
-}
-
-func GetSession(query string, args ...interface{}) []Session {
-
-	ddb := Db()
-	defer ddb.Close()
-
-	rows, err := ddb.Query(query, args...)
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	v := []Session{}
-	for rows.Next() {
-		var token string
-		var value string
-		err = rows.Scan(&token, &value)
-		if err != nil {
-			panic(err)
-		}
-
-		v = append(v, Session{
-			token: token,
-			value: value,
 		})
 	}
 
