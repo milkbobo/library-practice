@@ -2,14 +2,20 @@ package main
 
 import (
 	"./api"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+
+	"encoding/hex"
 	"net/http"
+	// "strconv"
 )
 
 func main() {
+	fmt.Println("come on")
+
 	http.HandleFunc("/", HttpWrapHandler(get))
 
 	http.HandleFunc("/add", HttpWrapHandler(add))
@@ -38,18 +44,22 @@ func HttpWrapHandler(inHandler HttpHandler) HttpHandler {
 				if err == api.NoLoginError {
 					http.Redirect(w, r, "/login", 302)
 				} else {
+					fmt.Println(err)
 					fmt.Fprint(w, "<div style=\"color:red\">")
 					fmt.Fprintf(w, "%v", err)
 					fmt.Fprint(w, "</div>")
 				}
 			}
+			// panic(err)
 		}()
 		inHandler(w, r)
+
+		fmt.Println("come out")
 	}
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
-	api.CheckLogin(r)
+	api.CheckLogin(w, r)
 
 	v := api.Get("SELECT * FROM book")
 
@@ -65,7 +75,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 }
 
 func add(w http.ResponseWriter, r *http.Request) {
-	api.CheckLogin(r)
+	api.CheckLogin(w, r)
 
 	if r.Method == "GET" {
 		result := api.TemplateOutput("add.html", nil)
@@ -89,7 +99,7 @@ func add(w http.ResponseWriter, r *http.Request) {
 }
 
 func del(w http.ResponseWriter, r *http.Request) {
-	api.CheckLogin(r)
+	api.CheckLogin(w, r)
 
 	data := api.CheckInput(r, map[string]string{
 		"id": "int",
@@ -108,7 +118,7 @@ func del(w http.ResponseWriter, r *http.Request) {
 }
 
 func edit(w http.ResponseWriter, r *http.Request) {
-	api.CheckLogin(r)
+	api.CheckLogin(w, r)
 
 	if r.Method == "GET" {
 		data := api.CheckInput(r, map[string]string{
@@ -160,9 +170,22 @@ func login(w http.ResponseWriter, r *http.Request) {
 			panic(errors.New("密码错误"))
 		}
 
+		k := make([]byte, 16)
+		if _, err := rand.Read(k); err != nil {
+			panic(err)
+		}
+
+		theRandValue := hex.EncodeToString(k)
+
+		_ = api.Add(
+			"INSERT session SET token=?,value=?",
+			theRandValue,
+			data["username"],
+		)
+
 		c := &http.Cookie{
-			Name:   "username",
-			Value:  "admin",
+			Name:   "token",
+			Value:  theRandValue,
 			Path:   "/",
 			MaxAge: 120,
 		}
@@ -174,7 +197,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 func out(w http.ResponseWriter, r *http.Request) {
 	c := &http.Cookie{
-		Name:   "username",
+		Name:   "token",
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,

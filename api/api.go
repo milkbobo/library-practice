@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -10,9 +11,26 @@ import (
 
 var NoLoginError = errors.New("账号未登录")
 
-func CheckLogin(r *http.Request) {
-	c1, err := r.Cookie("username")
-	if err != nil || c1.Value != "admin" {
+func CheckLogin(w http.ResponseWriter, r *http.Request) {
+	c1, err := r.Cookie("token")
+
+	if err != nil {
+		http.Redirect(w, r, "/login", 302)
+		panic(err)
+	}
+
+	token := c1.Value
+	fmt.Println("token", token)
+
+	v := GetSession("SELECT * FROM session where token=?", token)
+
+	fmt.Println("v", v)
+
+	if len(v) == 0 {
+		panic(errors.New("非法登陆"))
+	}
+
+	if err != nil || v[0].value != "admin" {
 		panic(NoLoginError)
 	}
 }

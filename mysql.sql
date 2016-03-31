@@ -14,3 +14,9 @@ CREATE TABLE `book` (
 insert into book (Username,Bname)values
 ("fish1","book1"),
 ("fish2","book2");
+
+CREATE TABLE `session` (
+    `token` VARCHAR(225) NOT NULL,
+    `value` VARCHAR(225) NULL DEFAULT NULL,
+    PRIMARY KEY (`token`)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;
