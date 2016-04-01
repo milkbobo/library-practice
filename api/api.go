@@ -3,7 +3,7 @@ package api
 import (
 	"bytes"
 	"errors"
-	// "fmt"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -13,14 +13,16 @@ var NoLoginError = errors.New("账号未登录")
 
 func CheckLogin(w http.ResponseWriter, r *http.Request) {
 
-	s := SessionStore{}
-	v := s.SessionGet(w, r)
+	s := SessionInit(w, r)
+	v := s.SessionGet("admin")
 
-	if len(v) == 0 {
-		panic(errors.New("非法登陆"))
+	fmt.Println(v)
+
+	if v == "" {
+		panic(NoLoginError)
 	}
 
-	if v[0].value != "admin" {
+	if v != "admin" {
 		panic(NoLoginError)
 	}
 }
