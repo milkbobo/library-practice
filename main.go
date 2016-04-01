@@ -171,7 +171,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ss := api.SessionInit(w, r)
-		ss.SessionSet("admin", "admin")
+		defer ss.SessionClose()
+		ss.SessionSet("username", "admin")
+
 		http.Redirect(w, r, "/", 302)
 	}
 
@@ -180,7 +182,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 func out(w http.ResponseWriter, r *http.Request) {
 
 	s := api.SessionInit(w, r)
-	s.SessionClose()
+	s.SessionDel("username")
+	defer s.SessionClose()
 
 	http.Redirect(w, r, "/", 302)
 

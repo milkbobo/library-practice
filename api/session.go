@@ -12,7 +12,7 @@ import (
 
 type SessionStore struct {
 	token string
-	value string
+	value map[string]string
 	w     http.ResponseWriter
 	r     *http.Request
 }
@@ -24,6 +24,8 @@ func SessionInit(w http.ResponseWriter, r *http.Request) *SessionStore {
 	var s SessionStore
 
 	if err != nil {
+
+		//生成随机数
 		k := make([]byte, 16)
 		if _, err := rand.Read(k); err != nil {
 			panic(err)
@@ -31,105 +33,85 @@ func SessionInit(w http.ResponseWriter, r *http.Request) *SessionStore {
 
 		theRandValue := hex.EncodeToString(k)
 
+		_ = Add(
+			"INSERT session SET token=?,value=?",
+			theRandValue,
+			"",
+		)
+
 		s = SessionStore{
 			token: theRandValue,
-			value: "",
+			value: map[string]string{},
 			w:     w,
 			r:     r,
 		}
 		fmt.Println("无token")
+		fmt.Println(s.token)
 	} else {
-		v := GetSession("SELECT * FROM session where token=?", c1.Value)
-
-		s = SessionStore{
-			token: v[0].token,
-			value: v[0].value,
-			w:     w,
-			r:     r,
-		}
+		s.getSession("SELECT * FROM session where token=?", c1.Value)
 
 		fmt.Println("有token")
 
 	}
 
+	c := &http.Cookie{
+		Name:   "token",
+		Value:  s.token,
+		Path:   "/",
+		MaxAge: 0,
+	}
+	http.SetCookie(w, c)
+
 	return &s
+
+}
+
+func (st *SessionStore) SessionGet(name string) string {
+
+	single, ok := st.value[name]
+	if ok {
+		return single
+	} else {
+		return ""
+	}
 
 }
 
 func (st *SessionStore) SessionSet(name string, value string) {
 
-	st.Input(name, value)
+	st.value[name] = value
 
-	_ = Add(
-		"INSERT session SET token=?,value=?",
-		st.token,
-		st.value,
-	)
-
-	c := &http.Cookie{
-		Name:   "token",
-		Value:  st.token,
-		Path:   "/",
-		MaxAge: 0,
-	}
-	http.SetCookie(st.w, c)
-}
-
-func (st *SessionStore) SessionGet(name string) string {
-
-	if st.value == "" {
-
-		fmt.Println("为空")
-		return ""
-
-	} else {
-		fmt.Println("有东西")
-		fmt.Println(st.value)
-		content := make(map[string]string)
-		err := json.Unmarshal([]byte(st.value), &content)
-		if err != nil {
-			panic(errors.New("解析JSON失败"))
-		}
-		fmt.Println(content)
-		singleValue := content[name]
-		return singleValue
-	}
+	fmt.Println("输入了"+name, st.value[name])
 
 }
 
-func (st *SessionStore) SessionDestroy(name string) {
-	if st.value != "" {
-		content := make(map[string]string)
-		err := json.Unmarshal([]byte(st.value), &content)
-		if err != nil {
-			panic(err)
-		}
+func (st *SessionStore) SessionDel(name string) {
 
-		_, ok := content[name] // 假如key存在,则name = 李四 ，ok = true,否则，ok = false
-		if ok {
-			delete(content, name)
-		}
+	_, ok := st.value[name] // 假如key存在,则name = 李四 ，ok = true,否则，ok = false
+	if ok {
+		delete(st.value, name)
 	}
+
 }
 
 func (st *SessionStore) SessionClose() {
+	ddb := Db()
 
-	Close(st.token)
+	defer ddb.Close()
 
-	c := &http.Cookie{
-		Name:   "token",
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
+	stmt, err := ddb.Prepare("update session set value=? where token=?")
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Println(st.w, c)
-
-	http.SetCookie(st.w, c)
+	_, err = stmt.Exec(map2json(st.value), st.token)
+	if err != nil {
+		panic(err)
+	}
 
 }
 
-func GetSession(query string, args ...interface{}) []SessionStore {
+func (st *SessionStore) getSession(query string, args ...interface{}) {
 
 	ddb := Db()
 	defer ddb.Close()
@@ -140,7 +122,6 @@ func GetSession(query string, args ...interface{}) []SessionStore {
 	}
 	defer rows.Close()
 
-	v := []SessionStore{}
 	for rows.Next() {
 		var token string
 		var value string
@@ -149,51 +130,31 @@ func GetSession(query string, args ...interface{}) []SessionStore {
 			panic(err)
 		}
 
-		v = append(v, SessionStore{
-			token: token,
-			value: value,
-		})
-	}
+		mapData := json2map(value)
 
-	return v
-}
+		st.token = token
+		st.value = mapData
 
-func Close(token string) {
-	ddb := Db()
-
-	defer ddb.Close()
-
-	stmt, err := ddb.Prepare("delete from session where token=?")
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = stmt.Exec(token)
-	if err != nil {
-		panic(err)
 	}
 
 }
 
-func (st *SessionStore) Input(name string, value string) {
+func json2map(jsonString string) map[string]string {
 
-	content := make(map[string]string)
-
-	if st.value == "" {
-		content[name] = value
-	} else {
-		err := json.Unmarshal([]byte(st.value), &content)
-		if err != nil {
-			panic(err)
-		}
-		content[name] = value
+	var content map[string]string
+	err := json.Unmarshal([]byte(jsonString), &content)
+	if err != nil {
+		panic(errors.New("解析JSON失败"))
 	}
 
-	jsonVelue, err := json.Marshal(content)
+	return content
+}
+
+func map2json(mapData map[string]string) string {
+
+	jsonData, err := json.Marshal(mapData)
 	if err != nil {
 		panic(err)
 	}
-
-	st.value = string(jsonVelue)
-
+	return string(jsonData)
 }

@@ -14,7 +14,8 @@ var NoLoginError = errors.New("账号未登录")
 func CheckLogin(w http.ResponseWriter, r *http.Request) {
 
 	s := SessionInit(w, r)
-	v := s.SessionGet("admin")
+	defer s.SessionClose()
+	v := s.SessionGet("username")
 
 	fmt.Println(v)
 
