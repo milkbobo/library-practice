@@ -7,9 +7,14 @@ import (
 )
 
 type Book struct {
-	Uid      int
+	Bid      int
 	Username string
 	Bname    string
+}
+type Userinfo struct {
+	Uid      int
+	Username string
+	Password string
 }
 
 func Db() *sql.DB {
@@ -33,16 +38,16 @@ func Get(query string, args ...interface{}) []Book {
 
 	v := []Book{}
 	for rows.Next() {
-		var uid int
+		var bid int
 		var username string
 		var bname string
-		err = rows.Scan(&uid, &username, &bname)
+		err = rows.Scan(&bid, &username, &bname)
 		if err != nil {
 			panic(err)
 		}
 
 		v = append(v, Book{
-			Uid:      uid,
+			Bid:      bid,
 			Username: username,
 			Bname:    bname,
 		})
@@ -56,7 +61,7 @@ func Del(id int) {
 
 	defer ddb.Close()
 
-	stmt, err := ddb.Prepare("delete from book where Uid=?")
+	stmt, err := ddb.Prepare("delete from book where Bid=?")
 	if err != nil {
 		panic(err)
 	}
@@ -109,4 +114,35 @@ func Edit(query string, args ...interface{}) {
 		panic(err)
 	}
 
+}
+
+func GetUserinfo(query string, args ...interface{}) []Userinfo {
+
+	ddb := Db()
+	defer ddb.Close()
+
+	rows, err := ddb.Query(query, args...)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	v := []Userinfo{}
+	for rows.Next() {
+		var uid int
+		var username string
+		var password string
+		err = rows.Scan(&uid, &username, &password)
+		if err != nil {
+			panic(err)
+		}
+
+		v = append(v, Userinfo{
+			Uid:      uid,
+			Username: username,
+			Password: password,
+		})
+	}
+
+	return v
 }

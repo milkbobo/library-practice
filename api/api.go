@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html/template"
@@ -23,9 +25,9 @@ func CheckLogin(w http.ResponseWriter, r *http.Request) {
 		panic(NoLoginError)
 	}
 
-	if v != "admin" {
-		panic(NoLoginError)
-	}
+	// if v != "admin" {
+	// 	panic(NoLoginError)
+	// }
 }
 
 func CheckInput(r *http.Request, inputFilter map[string]string) map[string]interface{} {
@@ -65,4 +67,14 @@ func TemplateOutput(filename string, data interface{}) []byte {
 		panic(err)
 	}
 	return buffer.Bytes()
+}
+
+func RandString(num int) string {
+	//生成随机数
+	k := make([]byte, num)
+	if _, err := rand.Read(k); err != nil {
+		panic(err)
+	}
+
+	return hex.EncodeToString(k)
 }

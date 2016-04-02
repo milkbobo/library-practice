@@ -3,28 +3,28 @@ package main
 import (
 	"./api"
 	// "crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
-
 	// "encoding/hex"
 	"net/http"
 	// "strconv"
+	"crypto/sha1"
+	"strings"
 )
 
 func main() {
 	fmt.Println("come on")
 
 	http.HandleFunc("/", HttpWrapHandler(get))
-
 	http.HandleFunc("/add", HttpWrapHandler(add))
-
 	http.HandleFunc("/del", HttpWrapHandler(del))
 	http.HandleFunc("/edit", HttpWrapHandler(edit))
-
 	http.HandleFunc("/login", HttpWrapHandler(login))
 	http.HandleFunc("/out", HttpWrapHandler(out))
+	http.HandleFunc("/register", HttpWrapHandler(register))
 
 	err := http.ListenAndServe(":9090", nil)
 	if err != nil {
@@ -105,7 +105,7 @@ func del(w http.ResponseWriter, r *http.Request) {
 		"id": "int",
 	})
 
-	v := api.Get("SELECT * FROM book where Uid=?", data["id"].(int))
+	v := api.Get("SELECT * FROM book where Bid=?", data["id"].(int))
 
 	if len(v) == 0 {
 		panic(errors.New("不存在该数据"))
@@ -125,7 +125,7 @@ func edit(w http.ResponseWriter, r *http.Request) {
 			"id": "int",
 		})
 
-		v := api.Get("SELECT * FROM book where Uid=?", data["id"].(int))
+		v := api.Get("SELECT * FROM book where Bid=?", data["id"].(int))
 
 		if len(v) == 0 {
 			panic(errors.New("不存在该数据"))
@@ -141,7 +141,7 @@ func edit(w http.ResponseWriter, r *http.Request) {
 		})
 
 		api.Edit(
-			"update book set Bname=? where uid=?",
+			"update book set Bname=? where Bid=?",
 			data["bname"].(string),
 			data["id"].(int),
 		)
@@ -163,16 +163,34 @@ func login(w http.ResponseWriter, r *http.Request) {
 			"password": "string",
 		})
 
-		if data["username"] != "admin" {
-			panic(errors.New("账号错误"))
+		v := api.GetUserinfo("SELECT * FROM userinfo where username=?", data["username"])
+
+		if len(v) == 0 {
+			panic(errors.New("用户不存在"))
 		}
-		if data["password"] != "admin" {
+
+		fmt.Println(v)
+
+		hashAndSalt := strings.Split(v[0].Password, ":")
+		password := hashAndSalt[0]
+		salt := hashAndSalt[1]
+		hash := sha1.New()
+		passwordSha1Byte := hash.Sum([]byte(data["password"].(string) + salt))
+		passwordSha1 := hex.EncodeToString(passwordSha1Byte)
+
+		if password != passwordSha1 {
+			fmt.Println("数据库password:", v[0].Password)
+			fmt.Println("生成出来的密码:", passwordSha1)
+			fmt.Println("数据库密码:", password)
+			fmt.Println("盐:", salt)
+
 			panic(errors.New("密码错误"))
 		}
 
 		ss := api.SessionInit(w, r)
 		defer ss.SessionClose()
-		ss.SessionSet("username", "admin")
+		// ss.SessionSet("username", "admin")
+		ss.SessionSet("username", v[0].Username)
 
 		http.Redirect(w, r, "/", 302)
 	}
@@ -186,5 +204,54 @@ func out(w http.ResponseWriter, r *http.Request) {
 	defer s.SessionClose()
 
 	http.Redirect(w, r, "/", 302)
+
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == "GET" {
+		result := api.TemplateOutput("register.html", nil)
+
+		w.Write(result)
+	} else {
+		data := api.CheckInput(r, map[string]string{
+			"username":  "string",
+			"password":  "string",
+			"password2": "string",
+		})
+
+		if data["password"] != data["password2"] {
+			panic(errors.New("确认密码不正确"))
+		}
+
+		username := data["username"].(string)
+		password := data["password"].(string)
+
+		v := api.GetUserinfo("SELECT * FROM userinfo where username=?", username)
+
+		if len(v) > 0 {
+			panic(errors.New("用户名已存在，请重新注册其他用户名字"))
+		}
+
+		salt := api.RandString(5)
+		fmt.Println("salt", salt)
+		hash := sha1.New()
+		passwordSha1Byte := hash.Sum([]byte(password + salt))
+		passwordSha1 := hex.EncodeToString(passwordSha1Byte)
+
+		fmt.Println("passwordSha1", passwordSha1)
+
+		_ = api.Add(
+			"INSERT userinfo SET username=?,password=?",
+			username,
+			passwordSha1+":"+salt,
+		)
+
+		ss := api.SessionInit(w, r)
+		defer ss.SessionClose()
+		ss.SessionSet("username", username)
+
+		http.Redirect(w, r, "/", 302)
+	}
 
 }

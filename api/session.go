@@ -1,8 +1,6 @@
 package api
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,13 +23,7 @@ func SessionInit(w http.ResponseWriter, r *http.Request) *SessionStore {
 
 	if err != nil {
 
-		//生成随机数
-		k := make([]byte, 16)
-		if _, err := rand.Read(k); err != nil {
-			panic(err)
-		}
-
-		theRandValue := hex.EncodeToString(k)
+		theRandValue := RandString(16)
 
 		_ = Add(
 			"INSERT session SET token=?,value=?",
@@ -46,7 +38,7 @@ func SessionInit(w http.ResponseWriter, r *http.Request) *SessionStore {
 			r:     r,
 		}
 		fmt.Println("无token")
-		fmt.Println(s.token)
+		fmt.Println("theRandValue", theRandValue)
 	} else {
 		s.getSession("SELECT * FROM session where token=?", c1.Value)
 
@@ -78,6 +70,17 @@ func (st *SessionStore) SessionGet(name string) string {
 }
 
 func (st *SessionStore) SessionSet(name string, value string) {
+
+	if st.token == "" {
+		c := &http.Cookie{
+			Name:   "token",
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		}
+		http.SetCookie(st.w, c)
+		panic(errors.New("非法操作"))
+	}
 
 	st.value[name] = value
 
