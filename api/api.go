@@ -78,3 +78,29 @@ func RandString(num int) string {
 
 	return hex.EncodeToString(k)
 }
+
+func CheckCsrf(w http.ResponseWriter, r *http.Request) {
+	data := CheckInput(r, map[string]string{
+		"csrf": "string",
+	})
+
+	c1, err := r.Cookie("token")
+
+	if err != nil {
+		c := &http.Cookie{
+			Name:   "token",
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		}
+		http.SetCookie(w, c)
+		panic(errors.New("无效登陆，请重新登陆"))
+	}
+
+	fmt.Println("csrf", data["csrf"])
+	fmt.Println("c1.Value", c1.Value)
+
+	if data["csrf"] != c1.Value+"edward" {
+		panic(errors.New("我被csrf攻击啦！"))
+	}
+}

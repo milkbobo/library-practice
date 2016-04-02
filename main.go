@@ -82,6 +82,8 @@ func add(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(result)
 	} else {
+		api.CheckCsrf(w, r)
+
 		data := api.CheckInput(r, map[string]string{
 			"username": "string",
 			"bname":    "string",
@@ -135,6 +137,7 @@ func edit(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(result)
 	} else {
+		api.CheckCsrf(w, r)
 		data := api.CheckInput(r, map[string]string{
 			"id":    "int",
 			"bname": "string",
@@ -158,6 +161,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(result)
 	} else {
+
 		data := api.CheckInput(r, map[string]string{
 			"username": "string",
 			"password": "string",
