@@ -1,6 +1,6 @@
 watch:
 	-pkill -9 bee
-	-pkill -9 goldenstatue
+	-pkill -9 library
 	nohup bee run &
 	tail -f nohup.out
 release:

@@ -1,11 +1,14 @@
 package controllers
 
-import ()
+import (
+	. "github.com/fishedee/language"
+)
 
 type MainController struct {
 	BaseController
 }
 
 func (this *MainController) Test_Json() interface{} {
-	return "12xxxxx"
+	Throw(1, "你输入缺少了一个参数")
+	return "12xxx"
 }
