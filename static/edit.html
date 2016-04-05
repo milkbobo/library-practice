@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>修改图书</title>
+</head>
+<body>
+	<form action="/edit" method="post">
+
+	
+		<input type="hidden" name="id" value="{{.Bid}}">
+		<input type="hidden" name="csrf" id="csrf" value="">
+		<div>用户名字: <input type="text" name="username" value="{{.Username}}"  disabled="disabled" ></div>
+		<div>图书名字: <input type="text" name="bname" value="{{.Bname}}"></div>
+		<button type="submit" value="提交">提交</button>
+
+	
+	</form>
+
+
+<script type="text/javascript">
+	
+function getCookie(name)
+{
+var arr,reg=new RegExp("(^| )"+name+"=([^;]*)(;|$)");
+if(arr=document.cookie.match(reg))
+return unescape(arr[2]);
+else
+return null;
+}
+
+document.getElementById('csrf').value = getCookie('token')+'edward';
+
+</script>
+</body>
+</html>
