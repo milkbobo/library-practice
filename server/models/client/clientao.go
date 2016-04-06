@@ -22,8 +22,8 @@ func (this *ClientAoModel) GetByIds(ids []int) []Client {
 	return this.ClientDb.GetByIds(ids)
 }
 
-func (this *ClientAoModel) GetUsername(username string) []Client {
-	return this.ClientDb.GetUsername(username)
+func (this *ClientAoModel) GetByName(username string) []Client {
+	return this.ClientDb.GetByName(username)
 }
 
 func (this *ClientAoModel) Add(data Client) int {

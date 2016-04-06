@@ -60,7 +60,7 @@ func (this *ClientDbModel) Get(id int) Client {
 	return clients[0]
 }
 
-func (this *ClientDbModel) GetUsername(username string) []Client {
+func (this *ClientDbModel) GetByName(username string) []Client {
 	var clients []Client
 	err := this.DB.Where("username = ?", username).Find(&clients)
 	if err != nil {

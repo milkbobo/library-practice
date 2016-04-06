@@ -22,7 +22,7 @@ func (this *ClientLoginAoModel) Login(client Client) {
 	}
 	defer sess.SessionRelease(this.Ctx.ResponseWriter)
 
-	v := this.ClientAo.GetUsername(client.Username)
+	v := this.ClientAo.GetByName(client.Username)
 
 	fmt.Println("userData")
 	fmt.Printf("%+v", v)
@@ -89,7 +89,7 @@ func (this *ClientLoginAoModel) Register(username, password, password2 string) {
 		return
 	}
 
-	v := this.ClientAo.GetUsername(username)
+	v := this.ClientAo.GetByName(username)
 
 	if len(v) > 0 {
 		Throw(1, "用户名已存在，请重新注册其他用户名字")
