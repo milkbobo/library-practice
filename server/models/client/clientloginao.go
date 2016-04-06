@@ -61,7 +61,7 @@ func (this *ClientLoginAoModel) Logout() {
 func (this *ClientLoginAoModel) CheckMustLogin() Client {
 	client := this.IsLogin()
 	if client.ClientId == 0 {
-		Throw(2, "用户未登录！")
+		Throw(10001, "用户未登录！")
 	}
 	return client
 }

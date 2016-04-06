@@ -25,7 +25,7 @@ func (this *MainController) Index_index() interface{} {
 	//业务逻辑
 	books := this.BookAo.Search(Book{}, CommonPage{
 		PageSize:  50,
-		PageIndex: 1,
+		PageIndex: 0,
 	})
 	fmt.Printf("%+v", books)
 	return books
@@ -118,14 +118,10 @@ func (this *MainController) Alter_edit() interface{} {
 	this.ClientLoginAo.CheckMustLogin()
 
 	//业务逻辑
-	books := this.BookAo.Search(book, CommonPage{
-		PageSize:  1,
-		PageIndex: 0,
-	})
+	books := this.BookAo.Get(book.Bid)
 	fmt.Printf("%+v", books)
 
-	return books.Data[0]
-
+	return books
 }
 
 //修改操作

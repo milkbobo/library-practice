@@ -42,7 +42,7 @@ func (this *BaseController) AutoRender(returnValue interface{}, viewname string)
 
 	if ok {
 		//用户未登陆
-		if result.Code == 3 {
+		if result.Code == 10001 {
 			this.Ctx.Redirect(302, "/index/signin")
 			return
 		}
