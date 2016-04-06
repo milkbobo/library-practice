@@ -1,7 +1,7 @@
 package client
 
 import (
-	"fmt"
+	// "fmt"
 	. "github.com/fishedee/language"
 	. "library/models/common"
 	"strconv"
@@ -12,8 +12,7 @@ type ClientDbModel struct {
 }
 
 func (this *ClientDbModel) Search(where Client, limit CommonPage) Clients {
-	fmt.Println("where", where)
-	fmt.Println("limit", limit)
+
 	db := this.DB.NewSession()
 	defer db.Close()
 
@@ -61,9 +60,9 @@ func (this *ClientDbModel) Get(id int) Client {
 	return clients[0]
 }
 
-func (this *ClientDbModel) GetByOpenId(openid string) []Client {
+func (this *ClientDbModel) GetUsername(username string) []Client {
 	var clients []Client
-	err := this.DB.Where("openid = ?", openid).Find(&clients)
+	err := this.DB.Where("username = ?", username).Find(&clients)
 	if err != nil {
 		panic(err)
 	}

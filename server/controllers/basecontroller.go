@@ -33,15 +33,28 @@ func (this *BaseController) jsonRender(result baseControllerResult) {
 }
 
 func (this *BaseController) AutoRender(returnValue interface{}, viewname string) {
-	// result := baseControllerResult{}
+	result := baseControllerResult{}
 	resultError, ok := returnValue.(Exception)
+	//带错误码的error
+	result.Code = resultError.GetCode()
+	result.Msg = resultError.GetMessage()
+	// result.Data = nil
+
 	if ok {
-		//带错误码的error
-		// result.Code = resultError.GetCode()
-		// result.Msg = resultError.GetMessage()
-		// result.Data = nil
+		//用户未登陆
+		if result.Code == 3 {
+			this.Ctx.Redirect(302, "/index/signin")
+			return
+		}
+
 		this.Ctx.WriteString(resultError.GetMessage())
 	} else {
+		//如果是跳转页面
+		if viewname == "redirect" {
+			this.Ctx.Redirect(302, returnValue.(string))
+			return
+		}
+
 		//正常返回
 		buffer := bytes.NewBuffer(nil)
 		t, err := template.ParseFiles("../static/" + viewname + ".html")

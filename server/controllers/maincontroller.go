@@ -37,8 +37,8 @@ func (this *MainController) Signup_register() interface{} {
 	return 0
 }
 
-//用户注册
-func (this *MainController) Register_register() interface{} {
+//注册操作
+func (this *MainController) Register_redirect() interface{} {
 
 	//检查输入
 	var client struct {
@@ -53,7 +53,7 @@ func (this *MainController) Register_register() interface{} {
 	//用户注册
 	this.ClientLoginAo.Register(client.Username, client.Password, client.Password2)
 
-	return 0
+	return "/index/index"
 
 }
 
@@ -64,18 +64,16 @@ func (this *MainController) Signin_login() interface{} {
 }
 
 //登陆操作
-func (this *MainController) Login_login() interface{} {
+func (this *MainController) Login_redirect() interface{} {
 
 	//检查输入
 	var client Client
 	this.CheckPost(&client)
 
-	fmt.Println(client)
-
 	//登录
 	this.ClientLoginAo.Login(client)
 
-	return 0
+	return "/index/index"
 
 }
 
@@ -94,7 +92,7 @@ func (this *MainController) Addbook_add() interface{} {
 }
 
 //添加书本操作
-func (this *MainController) Add_add() interface{} {
+func (this *MainController) Add_redirect() interface{} {
 	//检查输入
 	book := Book{}
 	this.CheckPost(&book)
@@ -104,9 +102,9 @@ func (this *MainController) Add_add() interface{} {
 
 	//业务逻辑
 	this.BookAo.Add(book)
-	this.Ctx.Redirect(302, "/index/index")
 
-	return 0
+	return "/index/index"
+
 }
 
 //修改页面
@@ -131,7 +129,7 @@ func (this *MainController) Alter_edit() interface{} {
 }
 
 //修改操作
-func (this *MainController) Edit_index() interface{} {
+func (this *MainController) Edit_redirect() interface{} {
 
 	//检查输入
 	book := Book{}
@@ -142,13 +140,13 @@ func (this *MainController) Edit_index() interface{} {
 
 	//业务逻辑
 	this.BookAo.Mod(book.Bid, book)
-	this.Ctx.Redirect(302, "/index/index")
 
-	return 0
+	return "/index/index"
+
 }
 
 //删除操作
-func (this *MainController) Del_index() interface{} {
+func (this *MainController) Del_redirect() interface{} {
 
 	//检查输入
 	book := Book{}
@@ -159,7 +157,7 @@ func (this *MainController) Del_index() interface{} {
 
 	//业务逻辑
 	this.BookAo.Del(book.Bid)
-	this.Ctx.Redirect(302, "/index/index")
 
-	return 0
+	return "/index/index"
+
 }
