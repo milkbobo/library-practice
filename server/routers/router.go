@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	InitRoute("/main", &MainController{})
+	InitRoute("/index", &MainController{})
 }

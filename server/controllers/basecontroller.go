@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	// "fmt"
+	"bytes"
 	"github.com/astaxie/beego"
 	. "github.com/fishedee/encoding"
 	. "github.com/fishedee/language"
 	. "github.com/fishedee/web"
+	"html/template"
 )
 
 type BaseController struct {
@@ -30,23 +33,35 @@ func (this *BaseController) jsonRender(result baseControllerResult) {
 }
 
 func (this *BaseController) AutoRender(returnValue interface{}, viewname string) {
-	result := baseControllerResult{}
+	// result := baseControllerResult{}
 	resultError, ok := returnValue.(Exception)
 	if ok {
 		//带错误码的error
-		result.Code = resultError.GetCode()
-		result.Msg = resultError.GetMessage()
-		result.Data = nil
+		// result.Code = resultError.GetCode()
+		// result.Msg = resultError.GetMessage()
+		// result.Data = nil
+		this.Ctx.WriteString(resultError.GetMessage())
 	} else {
 		//正常返回
-		result.Code = 0
-		result.Data = returnValue
-		result.Msg = ""
+		buffer := bytes.NewBuffer(nil)
+		t, err := template.ParseFiles("../static/" + viewname + ".html")
+		if err != nil {
+			panic(err)
+		}
+
+		err = t.Execute(buffer, returnValue)
+		if err != nil {
+			panic(err)
+		}
+		this.Ctx.ResponseWriter.Write(buffer.Bytes())
 	}
 
-	if viewname == "json" {
-		this.jsonRender(result)
-	} else {
-		panic("不合法的viewName " + viewname)
-	}
+	// if viewname == "json" {
+	// 	this.jsonRender(result)
+	// } else if viewname == "html" {
+	// 	// this.Ctx.WriteString("OK")
+	// 	this.TplName = "/static/index.html"
+	// } else {
+	// 	panic("不合法的viewName " + viewname)
+	// }
 }
