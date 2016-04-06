@@ -13,6 +13,7 @@ import (
 type ClientLoginAoModel struct {
 	BaseModel
 	ClientAo ClientAoModel
+	ClientDb ClientDbModel
 }
 
 func (this *ClientLoginAoModel) Login(client Client) {
@@ -75,6 +76,9 @@ func (this *ClientLoginAoModel) IsLogin() Client {
 
 	clientId := sess.Get("clientId")
 	clientIdInt, ok := clientId.(int)
+
+	fmt.Println("clientId", clientId, "clientIdInt", clientIdInt)
+
 	if ok && clientIdInt >= 10000 {
 		return this.ClientAo.Get(clientIdInt)
 	} else {
@@ -84,12 +88,17 @@ func (this *ClientLoginAoModel) IsLogin() Client {
 
 func (this *ClientLoginAoModel) Register(username, password, password2 string) {
 
+	sessDb := this.DB.NewSession()
+	defer sessDb.Close()
+	sessDb.Begin()
+
 	if password != password2 {
 		Throw(1, "确认密码不正确")
 		return
 	}
 
-	v := this.ClientAo.GetByName(username)
+	// v := this.ClientAo.GetByName(username)
+	v := this.ClientDb.GetByNameForTrans(sessDb, username)
 
 	if len(v) > 0 {
 		Throw(1, "用户名已存在，请重新注册其他用户名字")
@@ -111,16 +120,20 @@ func (this *ClientLoginAoModel) Register(username, password, password2 string) {
 
 	fmt.Println("passwordSha1", passwordSha1)
 
-	ClientId := this.ClientAo.Add(Client{
+	ClientId := this.ClientDb.AddForTrans(sessDb, Client{
 		Username: username,
 		Password: passwordSha1,
 	})
+
+	sessDb.Commit()
 
 	sess, err := this.Session.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
 	if err != nil {
 		panic("session启动失败！")
 	}
+
 	defer sess.SessionRelease(this.Ctx.ResponseWriter)
 
 	sess.Set("clientId", ClientId)
+
 }

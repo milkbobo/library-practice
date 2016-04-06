@@ -3,6 +3,7 @@ package client
 import (
 	// "fmt"
 	. "github.com/fishedee/language"
+	"github.com/go-xorm/xorm"
 	. "library/models/common"
 	"strconv"
 )
@@ -99,4 +100,21 @@ func (this *ClientDbModel) Del(id int) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (this *ClientDbModel) GetByNameForTrans(sess *xorm.Session, username string) []Client {
+	result := []Client{}
+	err := sess.Sql("select * from t_client where username = ? for update", username).Find(&result)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+func (this *ClientDbModel) AddForTrans(sess *xorm.Session, data Client) int {
+	_, err := sess.Insert(&data)
+	if err != nil {
+		panic(err)
+	}
+	return data.ClientId
 }
