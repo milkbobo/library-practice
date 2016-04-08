@@ -12,11 +12,11 @@ type ClientLoginAoTest struct {
 }
 
 func (this *ClientLoginAoTest) TestDuplicateName() {
-	this.Benchmark(100, 100, func() {
+	this.Benchmark(1000, 1000, func() {
 		defer CatchCrash(func(e Exception) {
 
 		})
-		this.ClientLoginAo.Register("测试8", "password", "password")
+		this.ClientLoginAo.Register("nnnnnn", "password", "password")
 	})
 }
 

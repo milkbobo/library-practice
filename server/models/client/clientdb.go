@@ -118,3 +118,27 @@ func (this *ClientDbModel) AddForTrans(sess *xorm.Session, data Client) int {
 	}
 	return data.ClientId
 }
+
+func (this *ClientDbModel) AddOnce(client Client) (int, int) {
+
+	result, err := this.DB.Exec("INSERT ignore t_client (username,password) VALUES (?,?)", client.Username, client.Password)
+
+	if err != nil {
+		panic(err)
+	}
+
+	//fmt.Printf("%+v", result)
+	id, err := result.LastInsertId()
+	if err != nil {
+		panic(err)
+	}
+
+	affectedRows, err := result.RowsAffected()
+
+	if err != nil {
+		panic(err)
+
+	}
+
+	return int(id), int(affectedRows)
+}

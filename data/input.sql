@@ -12,6 +12,7 @@ create table t_client(
 	modifyTime timestamp not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
 	primary key( clientId )
 )engine=innodb default charset=utf8mb4 auto_increment = 10001;
+alter table t_client add unique index nameIndex(username);
 
 
 create table t_book(
