@@ -128,14 +128,10 @@ func (this *ClientLoginAoModel) Register(username, password, password2 string) {
 	// Password: passwordSha1,
 	// })
 
-	clientId, affectedRows := this.ClientDb.AddOnce(Client{
+	clientId := this.ClientDb.AddOnce(Client{
 		Username: username,
 		Password: passwordSha1,
 	})
-
-	if affectedRows == 0 {
-		Throw(1, "该用户已经存在")
-	}
 
 	// sessDb.Commit()
 

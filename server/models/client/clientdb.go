@@ -119,7 +119,7 @@ func (this *ClientDbModel) AddForTrans(sess *xorm.Session, data Client) int {
 	return data.ClientId
 }
 
-func (this *ClientDbModel) AddOnce(client Client) (int, int) {
+func (this *ClientDbModel) AddOnce(client Client) int {
 
 	result, err := this.DB.Exec("INSERT ignore t_client (username,password) VALUES (?,?)", client.Username, client.Password)
 
@@ -139,6 +139,9 @@ func (this *ClientDbModel) AddOnce(client Client) (int, int) {
 		panic(err)
 
 	}
+	if affectedRows == 0 {
+		Throw(1, "该用户已经存在")
+	}
 
-	return int(id), int(affectedRows)
+	return int(id)
 }
