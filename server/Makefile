@@ -1,7 +1,7 @@
 watch:
-	-pkill -9 bee
+	-pkill -9 fishcmd
 	-pkill -9 library
-	nohup bee run &
+	nohup fishcmd run --watch &
 	tail -f nohup.out
 release:
 	go install goldenstatue

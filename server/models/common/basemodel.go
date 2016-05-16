@@ -5,5 +5,5 @@ import (
 )
 
 type BaseModel struct {
-	BeegoValidateModel
+	Model
 }

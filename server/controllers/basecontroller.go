@@ -1,21 +1,16 @@
 package controllers
 
 import (
-	// "fmt"
 	"bytes"
-	"github.com/astaxie/beego"
 	. "github.com/fishedee/encoding"
 	. "github.com/fishedee/language"
 	. "github.com/fishedee/web"
 	"html/template"
+	"net/http"
 )
 
 type BaseController struct {
-	BeegoValidateController
-}
-
-func InitRoute(namespace string, target beego.ControllerInterface) {
-	InitBeegoVaildateControllerRoute(namespace, target)
+	Controller
 }
 
 type baseControllerResult struct {
@@ -29,29 +24,31 @@ func (this *BaseController) jsonRender(result baseControllerResult) {
 	if err != nil {
 		panic(err)
 	}
-	this.Ctx.WriteString(string(resultString))
+	this.Ctx.Write(resultString)
 }
 
 func (this *BaseController) AutoRender(returnValue interface{}, viewname string) {
 	result := baseControllerResult{}
 	resultError, ok := returnValue.(Exception)
+	request := this.Ctx.GetRawRequest().(*http.Request)
+	responseWriter := this.Ctx.GetRawResponseWriter().(http.ResponseWriter)
+
 	//带错误码的error
 	result.Code = resultError.GetCode()
 	result.Msg = resultError.GetMessage()
-	// result.Data = nil
-
 	if ok {
 		//用户未登陆
 		if result.Code == 10001 {
-			this.Ctx.Redirect(302, "/index/signin")
+			this.Log.Debug("not signin")
+			http.Redirect(responseWriter, request, "/index/signin", http.StatusMovedPermanently)
 			return
 		}
 
-		this.Ctx.WriteString(resultError.GetMessage())
+		this.Ctx.Write([]byte(resultError.GetMessage()))
 	} else {
 		//如果是跳转页面
 		if viewname == "redirect" {
-			this.Ctx.Redirect(302, returnValue.(string))
+			http.Redirect(responseWriter, request, returnValue.(string), http.StatusMovedPermanently)
 			return
 		}
 
@@ -66,15 +63,6 @@ func (this *BaseController) AutoRender(returnValue interface{}, viewname string)
 		if err != nil {
 			panic(err)
 		}
-		this.Ctx.ResponseWriter.Write(buffer.Bytes())
+		this.Ctx.Write(buffer.Bytes())
 	}
-
-	// if viewname == "json" {
-	// 	this.jsonRender(result)
-	// } else if viewname == "html" {
-	// 	// this.Ctx.WriteString("OK")
-	// 	this.TplName = "/static/index.html"
-	// } else {
-	// 	panic("不合法的viewName " + viewname)
-	// }
 }

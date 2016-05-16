@@ -18,11 +18,11 @@ type ClientLoginAoModel struct {
 }
 
 func (this *ClientLoginAoModel) Login(client Client) {
-	sess, err := this.Session.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
+	sess, err := this.Session.SessionStart()
 	if err != nil {
 		panic("session启动失败")
 	}
-	defer sess.SessionRelease(this.Ctx.ResponseWriter)
+	defer sess.SessionRelease()
 
 	v := this.ClientAo.GetByName(client.Username)
 
@@ -51,11 +51,11 @@ func (this *ClientLoginAoModel) Login(client Client) {
 }
 
 func (this *ClientLoginAoModel) Logout() {
-	sess, err := this.Session.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
+	sess, err := this.Session.SessionStart()
 	if err != nil {
 		panic("session启动失败！")
 	}
-	defer sess.SessionRelease(this.Ctx.ResponseWriter)
+	defer sess.SessionRelease()
 
 	sess.Set("clientId", 0)
 }
@@ -69,11 +69,11 @@ func (this *ClientLoginAoModel) CheckMustLogin() Client {
 }
 
 func (this *ClientLoginAoModel) IsLogin() Client {
-	sess, err := this.Session.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
+	sess, err := this.Session.SessionStart()
 	if err != nil {
 		panic("session启动失败")
 	}
-	defer sess.SessionRelease(this.Ctx.ResponseWriter)
+	defer sess.SessionRelease()
 
 	clientId := sess.Get("clientId")
 	clientIdInt, ok := clientId.(int)
@@ -135,12 +135,12 @@ func (this *ClientLoginAoModel) Register(username, password, password2 string) {
 
 	// sessDb.Commit()
 
-	sess, err := this.Session.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
+	sess, err := this.Session.SessionStart()
 	if err != nil {
 		panic("session启动失败！")
 	}
 
-	defer sess.SessionRelease(this.Ctx.ResponseWriter)
+	defer sess.SessionRelease()
 
 	sess.Set("clientId", clientId)
 
